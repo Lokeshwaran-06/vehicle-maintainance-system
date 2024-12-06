@@ -1,0 +1,240 @@
+import javax.swing.*;
+import java.awt.*;
+9import java.util.ArrayList;
+import java.util.List;
+import java.time.*;
+import java.time.format.DateTimeFormatter;
+
+public class VehicleMaintenanceSystem {
+    private JFrame frame;
+    private JTextField regNumberField, modelField, yearField, taskDescField, dueDateField;
+    private JComboBox<String> makeDropdown;
+    private List<Vehicle> vehicles = new ArrayList<>();
+    private List<MaintenanceTask> tasks = new ArrayList<>();
+
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(() -> new VehicleMaintenanceSystem().createAndShowGUI());
+    }
+
+    private void createAndShowGUI() {
+        frame = new JFrame("Vehicle Maintenance System");
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.setSize(500, 400);
+
+        // Main Panel with Background and Layout
+        JPanel mainPanel = new JPanel();
+        mainPanel.setBackground(new Color(200, 230, 250)); // Light blue background
+        mainPanel.setLayout(new BorderLayout());
+
+        // Title Label
+        JLabel titleLabel = new JLabel("Vehicle Maintenance System", JLabel.CENTER);
+        titleLabel.setFont(new Font("Arial", Font.BOLD, 24));
+        titleLabel.setForeground(new Color(30, 60, 90)); // Dark blue text
+        titleLabel.setBorder(BorderFactory.createEmptyBorder(20, 0, 20, 0));
+        mainPanel.add(titleLabel, BorderLayout.NORTH);
+
+        // Buttons Panel
+        JPanel buttonsPanel = new JPanel();
+        buttonsPanel.setLayout(new GridLayout(4, 1, 10, 10));
+        buttonsPanel.setBackground(new Color(200, 230, 250));
+
+        JButton addVehicleButton = new JButton("Add Vehicle");
+        JButton scheduleTaskButton = new JButton("Schedule Maintenance");
+        JButton viewTasksButton = new JButton("View Scheduled Tasks");
+        JButton showDueTasksButton = new JButton("Show Due Tasks");
+
+        addVehicleButton.addActionListener(e -> showAddVehicleForm());
+        scheduleTaskButton.addActionListener(e -> showScheduleMaintenanceForm());
+        viewTasksButton.addActionListener(e -> showScheduledTasks());
+        showDueTasksButton.addActionListener(e -> showDueTasks());
+
+        buttonsPanel.add(addVehicleButton);
+        buttonsPanel.add(scheduleTaskButton);
+        buttonsPanel.add(viewTasksButton);
+        buttonsPanel.add(showDueTasksButton);
+
+        mainPanel.add(buttonsPanel, BorderLayout.CENTER);
+        frame.add(mainPanel);
+        frame.setVisible(true);
+    }
+
+    private void showAddVehicleForm() {
+        JFrame addVehicleFrame = new JFrame("Add Vehicle");
+        addVehicleFrame.setSize(300, 250);
+        addVehicleFrame.setLayout(new GridLayout(5, 2));
+
+        addVehicleFrame.add(new JLabel("Registration Number:"));
+        regNumberField = new JTextField();
+        addVehicleFrame.add(regNumberField);
+
+        addVehicleFrame.add(new JLabel("Make:"));
+        String[] makes = {"Toyota", "Honda", "Ford", "BMW", "Audi", "Chevrolet"};
+        makeDropdown = new JComboBox<>(makes);
+        addVehicleFrame.add(makeDropdown);
+
+        addVehicleFrame.add(new JLabel("Model:"));
+        modelField = new JTextField();
+        addVehicleFrame.add(modelField);
+
+        addVehicleFrame.add(new JLabel("Year:"));
+        yearField = new JTextField();
+        addVehicleFrame.add(yearField);
+
+        JButton saveButton = new JButton("Save");
+        saveButton.addActionListener(e -> saveVehicle());
+        addVehicleFrame.add(saveButton);
+
+        addVehicleFrame.setVisible(true);
+    }
+
+    private void saveVehicle() {
+        try {
+            String regNumber = regNumberField.getText();
+            String make = (String) makeDropdown.getSelectedItem();
+            String model = modelField.getText();
+            int year = Integer.parseInt(yearField.getText());
+
+            Vehicle newVehicle = new Vehicle(regNumber, make, model, year);
+            vehicles.add(newVehicle);
+
+            JOptionPane.showMessageDialog(frame, "Vehicle added successfully!");
+
+            // Clear the fields after saving
+            regNumberField.setText("");
+            modelField.setText("");
+            yearField.setText("");
+        } catch (NumberFormatException e) {
+            JOptionPane.showMessageDialog(frame, "Please enter a valid year.", "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void showScheduleMaintenanceForm() {
+        JFrame scheduleFrame = new JFrame("Schedule Maintenance");
+        scheduleFrame.setSize(300, 250);
+        scheduleFrame.setLayout(new GridLayout(5, 2));
+
+        scheduleFrame.add(new JLabel("Select Vehicle:"));
+        JComboBox<String> vehicleDropdown = new JComboBox<>();
+        for (Vehicle vehicle : vehicles) {
+            vehicleDropdown.addItem(vehicle.getRegistration());
+        }
+        scheduleFrame.add(vehicleDropdown);
+
+        scheduleFrame.add(new JLabel("Task Description:"));
+        taskDescField = new JTextField();
+        scheduleFrame.add(taskDescField);
+
+        scheduleFrame.add(new JLabel("Due Date (YYYY-MM-DD):"));
+        dueDateField = new JTextField();
+        scheduleFrame.add(dueDateField);
+
+        JButton saveButton = new JButton("Save Task");
+        saveButton.addActionListener(e -> saveMaintenanceTask(vehicleDropdown));
+        scheduleFrame.add(saveButton);
+
+        scheduleFrame.setVisible(true);
+    }
+
+    private void saveMaintenanceTask(JComboBox<String> vehicleDropdown) {
+        try {
+            String vehicleReg = (String) vehicleDropdown.getSelectedItem();
+            String description = taskDescField.getText();
+            String dueDate = dueDateField.getText();
+
+            LocalDate.parse(dueDate, DateTimeFormatter.ofPattern("yyyy-MM-dd")); // Validate date format
+
+            MaintenanceTask task = new MaintenanceTask(vehicleReg, description, dueDate);
+            tasks.add(task);
+
+            JOptionPane.showMessageDialog(frame, "Maintenance task scheduled!");
+
+            // Clear the fields after saving
+            taskDescField.setText("");
+            dueDateField.setText("");
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(frame, "Invalid date format. Use YYYY-MM-DD.", "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void showScheduledTasks() {
+        JFrame tasksFrame = new JFrame("All Scheduled Maintenance Tasks");
+        tasksFrame.setSize(400, 300);
+
+        String[] columnNames = {"Vehicle", "Task", "Due Date"};
+        Object[][] data = new Object[tasks.size()][3];
+
+        for (int i = 0; i < tasks.size(); i++) {
+            MaintenanceTask task = tasks.get(i);
+            data[i][0] = task.getVehicleRegistration();
+            data[i][1] = task.getDescription();
+            data[i][2] = task.getDueDate();
+        }
+
+        JTable table = new JTable(data, columnNames);
+        tasksFrame.add(new JScrollPane(table));
+        tasksFrame.setVisible(true);
+    }
+
+    private void showDueTasks() {
+        JFrame dueTasksFrame = new JFrame("Tasks Due Soon");
+        dueTasksFrame.setSize(400, 300);
+
+        String[] columnNames = {"Vehicle", "Task", "Due Date"};
+        List<Object[]> dueData = new ArrayList<>();
+        LocalDate today = LocalDate.now();
+
+        for (MaintenanceTask task : tasks) {
+            LocalDate dueDate = LocalDate.parse(task.getDueDate(), DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+            if (!dueDate.isBefore(today) && dueDate.isBefore(today.plusDays(3))) {
+                dueData.add(new Object[]{task.getVehicleRegistration(), task.getDescription(), task.getDueDate()});
+            }
+        }
+
+        Object[][] data = dueData.toArray(new Object[0][0]);
+        JTable table = new JTable(data, columnNames);
+        dueTasksFrame.add(new JScrollPane(table));
+        dueTasksFrame.setVisible(true);
+    }
+
+    class Vehicle {
+        private String registration;
+        private String make;
+        private String model;
+        private int year;
+
+        public Vehicle(String registration, String make, String model, int year) {
+            this.registration = registration;
+            this.make = make;
+            this.model = model;
+            this.year = year;
+        }
+
+        public String getRegistration() {
+            return registration;
+        }
+    }
+
+    class MaintenanceTask {
+        private String vehicleRegistration;
+        private String description;
+        private String dueDate;
+
+        public MaintenanceTask(String vehicleRegistration, String description, String dueDate) {
+            this.vehicleRegistration = vehicleRegistration;
+            this.description = description;
+            this.dueDate = dueDate;
+        }
+
+        public String getVehicleRegistration() {
+            return vehicleRegistration;
+        }
+
+        public String getDescription() {
+            return description;
+        }
+
+        public String getDueDate() {
+            return dueDate;
+        }
+    }
+}
